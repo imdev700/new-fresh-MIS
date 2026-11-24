@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Corporate Transport Duty App</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+    body { background: #f0f2f5; color: #333; padding-bottom: 40px; }
+    .header { background: #1a365d; color: white; padding: 16px; text-align: center; position: sticky; top: 0; z-index: 100; }
+    .header h2 { font-size: 18px; }
+    .nav-tabs { display: flex; background: #2c5282; }
+    .nav-btn { flex: 1; padding: 11px 6px; border: none; background: transparent; color: #cbd5e0; font-weight: bold; cursor: pointer; font-size: 13px; }
+    .nav-btn.active { background: #ffffff; color: #1a365d; border-top: 3px solid #ed8936; }
+    .container { max-width: 600px; margin: 15px auto; padding: 0 15px; }
+    .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 15px; }
+    .form-group { margin-bottom: 13px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #4a5568; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 15px; }
+    .btn { width: 100%; padding: 13px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+    .btn-primary { background: #2b6cb0; color: white; }
+    .btn-primary:disabled { background: #a0aec0; cursor: not-allowed; }
+    .btn-secondary { background: #e2e8f0; color: #2d3748; }
+    .btn-success { background: #2f855a; color: white; margin-bottom: 15px; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 5px; }
+    .btn-edit { background: #dd6b20; color: white; }
+    .btn-del { background: #c53030; color: white; }
+    .hidden { display: none; }
+    .notice { background: #fffaf0; border-left: 4px solid #dd6b20; padding: 10px 12px; border-radius: 6px; font-size: 13px; color: #7b341e; margin-bottom: 14px; }
+    .readonly-notice { background: #ebf8ff; border-left: 4px solid #2b6cb0; padding: 10px 12px; border-radius: 6px; font-size: 13px; color: #2a4365; margin-bottom: 14px; }
+    .step-bar-wrap { margin-bottom: 14px; }
+    .step-label { font-size: 13px; font-weight: 700; color: #1a365d; margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .progress-track { width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 20%; background: #2b6cb0; transition: width 0.25s ease; }
+    .step-actions { display: flex; gap: 10px; margin-top: 10px; }
+    .step-actions .btn { margin-top: 0; }
+    .summary-box { display: flex; gap: 10px; margin-bottom: 14px; }
+    .summary-item { flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center; }
+    .summary-num { font-size: 20px; font-weight: bold; color: #1a365d; }
+    .summary-label { font-size: 12px; color: #4a5568; margin-top: 2px; }
+    .entry-card { border-left: 4px solid #2b6cb0; padding: 12px; background: #f8fafc; margin-bottom: 10px; border-radius: 6px; font-size: 14px; }
+    .entry-header { display: flex; justify-content: space-between; font-weight: bold; color: #1a365d; margin-bottom: 6px; }
+    .entry-detail { color: #4a5568; line-height: 1.55; }
+    .badge { background: #ebf8ff; color: #2b6cb0; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    #loader { text-align: center; padding: 20px; font-weight: bold; color: #2b6cb0; display: none; }
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 200; overflow-y: auto; }
+    .modal-content { background: white; padding: 20px; border-radius: 10px; width: 92%; max-width: 450px; max-height: 90vh; overflow-y: auto; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h2>Corporate Transport Duty Portal</h2>
+</div>
+
+<div class="nav-tabs">
+  <button class="nav-btn active" id="tabDriver" onclick="switchTab('driver')">Duty Entry</button>
+  <button class="nav-btn" id="tabMonth" onclick="switchTab('month')">My Month Duties</button>
+  <button class="nav-btn" id="tabOwner" onclick="switchTab('owner')">Owner 🔒</button>
+</div>
+
+<div class="container">
+  <div id="loader">Loading... Please wait</div>
+
+  <!-- 1. STEP-BY-STEP DUTY ENTRY SECTION (SUBMIT ONLY) -->
+  <div id="driverSection" class="card">
+    <h3 style="margin-bottom: 10px; color: #1a365d;">Duty Entry Karein</h3>
+    <div class="notice">
+      Har step bharna zaroori hai. Submit karne ke baad entry lock ho jayegi; kisi bhi change ke liye Owner se sampark karein.
+    </div>
+
+    <div class="step-bar-wrap">
+      <div class="step-label">
+        <span id="stepText">Step 1 of 5: Date & Company</span>
+        <span id="stepPercent">20%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <form id="dutyForm" autocomplete="off">
+      <!-- STEP 1 -->
+      <div class="wizard-step" data-step="1">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" id="dutyDate" required>
+        </div>
+        <div class="form-group">
+          <label>Company Name *</label>
+          <input type="text" id="companyName" placeholder="Company ka naam likhein" required>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="wizard-step hidden" data-step="2">
+        <div class="form-group">
+          <label>Trip Type (Pickup / Drop) *</label>
+          <select id="tripType" required>
+            <option value="">-- Select Trip Type --</option>
+            <option value="Pickup">Pickup</option>
+            <option value="Drop">Drop</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Time *</label>
+          <input type="time" id="dutyTime" required>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="wizard-step hidden" data-step="3">
+        <div class="form-group">
+          <label>Staff Name *</label>
+          <input type="text" id="staffName" placeholder="Staff ka naam likhein" required>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div class="wizard-step hidden" data-step="4">
+        <div class="form-group">
+          <label>Staff Pickup Address *</label>
+          <input type="text" id="pickupAddr" placeholder="Pickup address likhein" required>
+        </div>
+        <div class="form-group">
+          <label>Staff Drop Address *</label>
+          <input type="text" id="dropAddr" placeholder="Drop address likhein" required>
+        </div>
+      </div>
+
+      <!-- STEP 5 -->
+      <div class="wizard-step hidden" data-step="5">
+        <div class="form-group">
+          <label>No. Of Staff *</label>
+          <input type="number" id="staffNo" min="1" placeholder="Jaise: 1, 2, 3" required>
+        </div>
+        <div class="form-group">
+          <label>Route No. / Request No. *</label>
+          <input type="text" id="routeReq" placeholder="Route no. ya Request no." required>
+        </div>
+        <div class="form-group">
+          <label>Cab No. *</label>
+          <input type="text" id="cabNo" placeholder="Jaise: HR26DK1234" required>
+        </div>
+      </div>
+
+      <div class="step-actions">
+        <button type="button" id="prevBtn" class="btn btn-secondary hidden" onclick="prevStep()">Previous</button>
+        <button type="button" id="nextBtn" class="btn btn-primary" onclick="nextStep()">Next Step</button>
+        <button type="submit" id="submitBtn" class="btn btn-primary hidden">Submit Duty Entry</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 2. DRIVER MONTH VIEW SECTION (VIEW ONLY - NO EDIT / NO DELETE) -->
+  <div id="monthSection" class="card hidden">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <h3 style="color: #1a365d;">Is Mahine Ki Duties</h3>
+      <button class="btn-sm btn-primary" onclick="loadMonthDuties()">Refresh</button>
+    </div>
+
+    <div class="readonly-notice">
+      Yahan aap sirf is mahine ki duties dekh sakte hain. Kisi entry mein change ya delete karne ka option band hai.
+    </div>
+
+    <div class="form-group">
+      <label>Month Chunein</label>
+      <input type="month" id="monthFilter" onchange="renderMonthDuties()">
+    </div>
+
+    <div class="form-group">
+      <label>Company, Cab No. ya Route / Request No. (Optional Filter)</label>
+      <input type="text" id="monthSearch" onkeyup="renderMonthDuties()" placeholder="Jaise: TCS, HR26DK1234 ya Route-12">
+    </div>
+
+    <div class="summary-box">
+      <div class="summary-item">
+        <div class="summary-num" id="monthDutyCount">0</div>
+        <div class="summary-label">Total Duties</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-num" id="monthStaffCount">0</div>
+        <div class="summary-label">Total Staff</div>
+      </div>
+    </div>
+
+    <div id="monthEntriesList"></div>
+  </div>
+
+  <!-- 3. OWNER SECTION (EDIT & DELETE ACCESS ONLY) -->
+  <div id="ownerSection" class="hidden">
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="color: #1a365d;">All Duty Entries</h3>
+        <button class="btn-sm btn-primary" onclick="loadEntries()">Refresh</button>
+      </div>
+
+      <div class="form-group">
+        <input type="text" id="searchBox" onkeyup="filterEntries()" placeholder="Date, Company, Staff, Route ya Cab no. search karein...">
+      </div>
+      <button class="btn btn-success" onclick="downloadCSV()">Download Excel (CSV)</button>
+
+      <div id="entriesList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL (OWNER ONLY) -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <h3 style="margin-bottom: 12px;">Edit Entry (Owner Only)</h3>
+    <input type="hidden" id="editRowIndex">
+
+    <div class="form-group">
+      <label>Date</label>
+      <input type="date" id="editDate">
+    </div>
+    <div class="form-group">
+      <label>Company Name</label>
+      <input type="text" id="editCompanyName">
+    </div>
+    <div class="form-group">
+      <label>Trip Type (Pickup / Drop)</label>
+      <select id="editTripType">
+        <option value="Pickup">Pickup</option>
+        <option value="Drop">Drop</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Time</label>
+      <input type="time" id="editTime">
+    </div>
+    <div class="form-group">
+      <label>Staff Name</label>
+      <input type="text" id="editStaffName">
+    </div>
+    <div class="form-group">
+      <label>Staff Pickup Address</label>
+      <input type="text" id="editPickup">
+    </div>
+    <div class="form-group">
+      <label>Staff Drop Address</label>
+      <input type="text" id="editDrop">
+    </div>
+    <div class="form-group">
+      <label>No. Of Staff</label>
+      <input type="number" id="editStaffNo" min="1">
+    </div>
+    <div class="form-group">
+      <label>Route No. / Request No.</label>
+      <input type="text" id="editRouteReq">
+    </div>
+    <div class="form-group">
+      <label>Cab No.</label>
+      <input type="text" id="editCabNo">
+    </div>
+
+    <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    <button class="btn" style="background:#cbd5e0; margin-top:8px;" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+  // YAHAN APNA GOOGLE SCRIPT URL PASTE KAREIN
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAgnrt033FAscyFOpfVkn433VAdH9wfR0O3SoRn8YGTgnMmGypxWEKaeP66IHtbJ-u8g/exec";
+
+  // OWNER KA PIN (Aap ise badal sakte hain)
+  const OWNER_PIN = "0005";
+
+  const TOTAL_STEPS = 5;
+  const STEP_TITLES = {
+    1: "Date & Company",
+    2: "Trip Type & Time",
+    3: "Staff Name",
+    4: "Pickup & Drop Address",
+    5: "Staff Count, Route & Cab No."
+  };
+
+  let currentStep = 1;
+  let isOwnerUnlocked = false;
+  let isSubmitting = false;
+  let allData = [];
+
+  function getCurrentMonthValue() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    return ${y}-${m};
+  }
+
+  function normalizeMonthKey(dateVal) {
+    if (!dateVal) return "";
+    const str = String(dateVal).trim();
+    const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (isoMatch) {
+      return ${isoMatch[1]}-${String(isoMatch[2]).padStart(2, '0')};
+    }
+    const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (dmyMatch) {
+      return ${dmyMatch[3]}-${String(dmyMatch[2]).padStart(2, '0')};
+    }
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+      return ${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')};
+    }
+    return str.slice(0, 7);
+  }
+
+  function updateStepUI() {
+    document.querySelectorAll('.wizard-step').forEach(el => {
+      const stepNum = Number(el.getAttribute('data-step'));
+      el.classList.toggle('hidden', stepNum !== currentStep);
+    });
+
+    const percent = Math.round((currentStep / TOTAL_STEPS) * 100);
+    document.getElementById('stepText').innerText = Step ${currentStep} of ${TOTAL_STEPS}: ${STEP_TITLES[currentStep]};
+    document.getElementById('stepPercent').innerText = ${percent}%;
+    document.getElementById('progressFill').style.width = ${percent}%;
+
+    document.getElementById('prevBtn').classList.toggle('hidden', currentStep === 1);
+    document.getElementById('nextBtn').classList.toggle('hidden', currentStep === TOTAL_STEPS);
+    document.getElementById('submitBtn').classList.toggle('hidden', currentStep !== TOTAL_STEPS);
+  }
+
+  function validateStep(stepNum) {
+    const stepEl = document.querySelector(.wizard-step[data-step="${stepNum}"]);
+    if (!stepEl) return true;
+
+    const inputs = stepEl.querySelectorAll('input, select');
+    for (let i = 0; i < inputs.length; i++) {
+      const field = inputs[i];
+      if (field.type !== 'number' && typeof field.value === 'string') {
+        field.value = field.value.trim();
+      }
+      if (!field.checkValidity()) {
+        field.reportValidity();
+        return false;
+      }
+      if (field.type === 'number' && Number(field.value) < 1) {
+        alert("No. Of Staff kam se kam 1 hona chahiye.");
+        field.focus();
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function nextStep() {
+    if (!validateStep(currentStep)) return;
+    if (currentStep < TOTAL_STEPS) {
+      currentStep++;
+      updateStepUI();
+    }
+  }
+
+  function prevStep() {
+    if (currentStep > 1) {
+      currentStep--;
+      updateStepUI();
+    }
+  }
+
+  function resetDutyForm() {
+    document.getElementById('dutyForm').reset();
+    document.getElementById('dutyDate').valueAsDate = new Date();
+    currentStep = 1;
+    updateStepUI();
+  }
+
+  resetDutyForm();
+  document.getElementById('monthFilter').value = getCurrentMonthValue();
+
+  window.addEventListener('pageshow', function() {
+    resetDutyForm();
+  });
+
+  function setActiveTabButton(activeId) {
+    document.getElementById('tabDriver').classList.remove('active');
+    document.getElementById('tabMonth').classList.remove('active');
+    document.getElementById('tabOwner').classList.remove('active');
+    document.getElementById(activeId).classList.add('active');
+  }
+
+  function switchTab(tab) {
+    if (tab === 'owner') {
+      if (!isOwnerUnlocked) {
+        const pin = prompt("Owner PIN daalein:");
+        if (pin !== OWNER_PIN) {
+          alert("Galat PIN! Sirf Owner hi is hisse ko khol sakte hain.");
+          return;
+        }
+        isOwnerUnlocked = true;
+      }
+      document.getElementById('driverSection').classList.add('hidden');
+      document.getElementById('monthSection').classList.add('hidden');
+      document.getElementById('ownerSection').classList.remove('hidden');
+      setActiveTabButton('tabOwner');
+      loadEntries();
+    } else if (tab === 'month') {
+      if (!document.getElementById('monthFilter').value) {
+        document.getElementById('monthFilter').value = getCurrentMonthValue();
+      }
+      document.getElementById('driverSection').classList.add('hidden');
+      document.getElementById('ownerSection').classList.add('hidden');
+      document.getElementById('monthSection').classList.remove('hidden');
+      setActiveTabButton('tabMonth');
+      loadMonthDuties();
+    } else {
+      resetDutyForm();
+      document.getElementById('monthSection').classList.add('hidden');
+      document.getElementById('ownerSection').classList.add('hidden');
+      document.getElementById('driverSection').classList.remove('hidden');
+      setActiveTabButton('tabDriver');
+    }
+  }
+
+  document.getElementById('dutyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    for (let s = 1; s <= TOTAL_STEPS; s++) {
+      if (!validateStep(s)) {
+        currentStep = s;
+        updateStepUI();
+        return;
+      }
+    }
+
+    isSubmitting = true;
+    const submitBtn = document.getElementById('submitBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    submitBtn.disabled = true;
+    prevBtn.disabled = true;
+    submitBtn.innerText = "Submitting...";
+    showLoader(true);
+
+    const payload = {
+      action: "add",
+      date: document.getElementById('dutyDate').value,
+      companyName: document.getElementById('companyName').value.trim(),
+      tripType: document.getElementById('tripType').value,
+      time: document.getElementById('dutyTime').value,
+      staffName: document.getElementById('staffName').value.trim(),
+      pickup: document.getElementById('pickupAddr').value.trim(),
+      drop: document.getElementById('dropAddr').value.trim(),
+      staffNo: document.getElementById('staffNo').value,
+      routeReq: document.getElementById('routeReq').value.trim(),
+      cabNo: document.getElementById('cabNo').value.trim().toUpperCase()
+    };
+
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.text())
+    .then(() => {
+      showLoader(false);
+      isSubmitting = false;
+      submitBtn.disabled = false;
+      prevBtn.disabled = false;
+      submitBtn.innerText = "Submit Duty Entry";
+      resetDutyForm();
+      alert("Duty Entry Submit Ho Gayi! Ab is entry mein koi change nahi ho sakta.");
+    })
+    .catch(() => {
+      showLoader(false);
+      isSubmitting = false;
+      submitBtn.disabled = false;
+      prevBtn.disabled = false;
+      submitBtn.innerText = "Submit Duty Entry";
+      alert("Error aaya! Internet ya Script URL check karein.");
+    });
+  });
+
+  function loadMonthDuties() {
+    showLoader(true);
+    fetch(SCRIPT_URL)
+      .then(res => res.json())
+      .then(data => {
+        showLoader(false);
+        allData = data;
+        renderMonthDuties();
+      })
+      .catch(() => {
+        showLoader(false);
+        alert("Data load nahi ho paya! Internet ya Script URL check karein.");
+      });
+  }
+
+  function renderMonthDuties() {
+    const selectedMonth = document.getElementById('monthFilter').value;
+    const keyword = document.getElementById('monthSearch').value.trim().toLowerCase();
+    const list = document.getElementById('monthEntriesList');
+    list.innerHTML = "";
+
+    let dutyCount = 0;
+    let totalStaff = 0;
+    let cardsHTML = "";
+
+    for (let i = allData.length - 1; i >= 1; i--) {
+      const row = allData[i];
+      const rowMonth = normalizeMonthKey(row[0]);
+      if (selectedMonth && rowMonth !== selectedMonth) continue;
+
+      const searchText = ${row[1] || ""} ${row[8] || ""} ${row[9] || ""} ${row[4] || ""}.toLowerCase();
+      if (keyword && !searchText.includes(keyword)) continue;
+
+      dutyCount++;
+      totalStaff += Number(row[7]) || 0;
+
+      cardsHTML += `
+        <div class="entry-card">
+          <div class="entry-header">
+            <span>${row[0]} | ${row[2]} (${row[3]})</span>
+            <span class="badge">Staff: ${row[7]}</span>
+          </div>
+          <div class="entry-detail">
+            <strong>Company Name:</strong> ${row[1]}<br>
+            <strong>Staff Name:</strong> ${row[4]}<br>
+            <strong>Pickup:</strong> ${row[5]}<br>
+            <strong>Drop:</strong> ${row[6]}<br>
+            <strong>Route / Request No.:</strong> ${row[8]}<br>
+            <strong>Cab No.:</strong> ${row[9]}
+          </div>
+        </div>
+      `;
+    }
+
+    document.getElementById('monthDutyCount').innerText = dutyCount;
+    document.getElementById('monthStaffCount').innerText = totalStaff;
+
+    if (dutyCount === 0) {
+      list.innerHTML = <p style="text-align:center; color:#718096; padding:15px;">Is mahine ke liye koi duty entry nahi mili.</p>;
+    } else {
+      list.innerHTML = cardsHTML;
+    }
+  }
+
+  function loadEntries() {
+    if (!isOwnerUnlocked) return;
+    showLoader(true);
+    fetch(SCRIPT_URL)
+      .then(res => res.json())
+      .then(data => {
+        showLoader(false);
+        allData = data;
+        renderEntries(data);
+      });
+  }
+
+  function escapeJS(str) {
+    return String(str ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  }
+
+  function renderEntries(data) {
+    const list = document.getElementById('entriesList');
+    list.innerHTML = "";
+    for (let i = data.length - 1; i >= 1; i--) {
+      const row = data[i];
+      const sheetRowNumber = i + 1;
+      list.innerHTML += `
+        <div class="entry-card">
+          <div class="entry-header">
+            <span>${row[0]} | ${row[2]} (${row[3]})</span>
+            <span class="badge">Staff: ${row[7]}</span>
+          </div>
+          <div class="entry-detail">
+            <strong>Company Name:</strong> ${row[1]}<br>
+            <strong>Staff Name:</strong> ${row[4]}<br>
+            <strong>Pickup:</strong> ${row[5]}<br>
+            <strong>Drop:</strong> ${row[6]}<br>
+            <strong>Route / Request No.:</strong> ${row[8]}<br>
+            <strong>Cab No.:</strong> ${row[9]}
+          </div>
+          <div style="margin-top: 8px;">
+            <button class="btn-sm btn-edit" onclick="openEdit(
+              ${sheetRowNumber},
+              '${escapeJS(row[0])}',
+              '${escapeJS(row[1])}',
+              '${escapeJS(row[2])}',
+              '${escapeJS(row[3])}',
+              '${escapeJS(row[4])}',
+              '${escapeJS(row[5])}',
+              '${escapeJS(row[6])}',
+              '${escapeJS(row[7])}',
+              '${escapeJS(row[8])}',
+              '${escapeJS(row[9])}'
+            )">Edit</button>
+            <button class="btn-sm btn-del" onclick="deleteEntry(${sheetRowNumber})">Delete</button>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  function filterEntries() {
+    const query = document.getElementById('searchBox').value.toLowerCase();
+    const filtered = [allData[0]];
+    for (let i = 1; i < allData.length; i++) {
+      if (allData[i].join(" ").toLowerCase().includes(query)) {
+        filtered.push(allData[i]);
+      }
+    }
+    renderEntries(filtered);
+  }
+
+  function openEdit(rowNum, date, companyName, tripType, time, staffName, pickup, drop, staffNo, routeReq, cabNo) {
+    if (!isOwnerUnlocked) return;
+    document.getElementById('editRowIndex').value = rowNum;
+    document.getElementById('editDate').value = date;
+    document.getElementById('editCompanyName').value = companyName;
+    document.getElementById('editTripType').value = tripType;
+    document.getElementById('editTime').value = time;
+    document.getElementById('editStaffName').value = staffName;
+    document.getElementById('editPickup').value = pickup;
+    document.getElementById('editDrop').value = drop;
+    document.getElementById('editStaffNo').value = staffNo;
+    document.getElementById('editRouteReq').value = routeReq;
+    document.getElementById('editCabNo').value = cabNo;
+    document.getElementById('editModal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('editModal').style.display = 'none';
+  }
+
+  function saveEdit() {
+    if (!isOwnerUnlocked) return;
+    showLoader(true);
+    closeModal();
+    const payload = {
+      action: "edit",
+      row: document.getElementById('editRowIndex').value,
+      date: document.getElementById('editDate').value,
+      companyName: document.getElementById('editCompanyName').value,
+      tripType: document.getElementById('editTripType').value,
+      time: document.getElementById('editTime').value,
+      staffName: document.getElementById('editStaffName').value,
+      pickup: document.getElementById('editPickup').value,
+      drop: document.getElementById('editDrop').value,
+      staffNo: document.getElementById('editStaffNo').value,
+      routeReq: document.getElementById('editRouteReq').value,
+      cabNo: document.getElementById('editCabNo').value
+    };
+    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
+      .then(() => loadEntries());
+  }
+
+  function deleteEntry(rowNum) {
+    if (!isOwnerUnlocked) return;
+    if (!confirm("Kya aap sach mein yeh entry delete karna chahte hain?")) return;
+    showLoader(true);
+    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: "delete", row: rowNum }) })
+      .then(() => loadEntries());
+  }
+
+  function downloadCSV() {
+    if (!isOwnerUnlocked) return;
+    let csv = allData.map(row => row.map(cell => "${String(cell ?? "").replace(/"/g, '""')}").join(",")).join("\n");
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Transport_Duty_Report.csv';
+    a.click();
+  }
+
+  function showLoader(show) {
+    document.getElementById('loader').style.display = show ? 'block' : 'none';
+  }
+</script>
+</body>
+</html>
